@@ -1,0 +1,234 @@
+name: Release
+run-name: Release ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      community:
+        type: boolean
+        description: 社区版构建（排除私有插件）
+        default: false
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+            bundles: appimage,deb,rpm
+          - platform: windows
+            runner: windows-latest
+          - platform: macos
+            runner: macos-latest
+            target: universal-apple-darwin
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # -------- 前端工具链 --------
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules/.cache
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-bun-
+
+      # -------- Rust 工具链 --------
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      # -------- macOS 目标架构 --------
+      - name: Add macOS targets
+        if: matrix.platform == 'macos'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      # -------- Linux 系统依赖 --------
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            libayatana-appindicator3-dev
+
+      # -------- 前端依赖 --------
+      - name: Install frontend dependencies
+        run: bun install
+
+      # -------- 构建 --------
+      - name: Build Tauri App
+        shell: bash
+        env:
+          QC_COMMUNITY: ${{ github.event_name == 'workflow_dispatch' && inputs.community && '1' || '0' }}
+        run: |
+          ARGS=""
+          if [ -n "${{ matrix.target }}" ]; then
+            ARGS="$ARGS --target ${{ matrix.target }}"
+          fi
+          if [ -n "${{ matrix.bundles }}" ]; then
+            ARGS="$ARGS --bundles ${{ matrix.bundles }}"
+          fi
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.community }}" == "true" ]; then
+            ARGS="$ARGS --no-default-features"
+          fi
+          bun run tauri build $ARGS
+
+      # -------- 收集产物 --------
+      - name: Prepare Assets (macOS)
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release-assets
+          VERSION="${GITHUB_REF_NAME}"
+          # 查找 DMG（universal 构建产物在 target/universal-apple-darwin/ 下）
+          DMG=$(find src-tauri/target -path "*/bundle/*.dmg" -type f | head -1 || true)
+          if [ -n "$DMG" ]; then
+            cp "$DMG" "release-assets/Excel列提取合并器-${VERSION}-macOS.dmg"
+            echo "✅ DMG copied"
+          else
+            echo "❌ DMG not found" >&2
+          fi
+
+      - name: Prepare Assets (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $VERSION = $env:GITHUB_REF_NAME
+          # NSIS 安装包
+          $nsis = Get-ChildItem -Path 'src-tauri/target' -Recurse -Include *.exe -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\bundle\\' } | Select-Object -First 1
+          if ($null -ne $nsis) {
+            $dest = "Excel列提取合并器-$VERSION-Windows-Setup.exe"
+            Copy-Item $nsis.FullName (Join-Path release-assets $dest)
+            Write-Host "✅ NSIS installer copied: $dest"
+          } else {
+            Write-Warning 'NSIS installer not found'
+          }
+          # MSI
+          $msi = Get-ChildItem -Path 'src-tauri/target' -Recurse -Include *.msi -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\bundle\\' } | Select-Object -First 1
+          if ($null -ne $msi) {
+            $dest = "Excel列提取合并器-$VERSION-Windows.msi"
+            Copy-Item $msi.FullName (Join-Path release-assets $dest)
+            Write-Host "✅ MSI copied: $dest"
+          } else {
+            Write-Warning 'MSI not found'
+          }
+          # 便携版：原始 exe 打 zip
+          $exeItem = Get-ChildItem -Path 'src-tauri/target' -Recurse -Include 'ExcelMerge.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\release\\' -and $_.FullName -notmatch '\\bundle\\' } | Select-Object -First 1
+          if ($null -ne $exeItem) {
+            $portableDir = 'release-assets/portable'
+            New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
+            Copy-Item $exeItem.FullName $portableDir
+            $portableZip = "release-assets/Excel列提取合并器-$VERSION-Windows-Portable.zip"
+            Compress-Archive -Path "$portableDir/*" -DestinationPath $portableZip -Force
+            Remove-Item -Recurse -Force $portableDir
+            Write-Host "✅ Portable zip created: $portableZip"
+          } else {
+            Write-Warning "Portable exe not found in target/release/"
+          }
+
+      - name: Prepare Assets (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p release-assets
+          VERSION="${GITHUB_REF_NAME}"
+          # AppImage
+          APPIMAGE=$(find src-tauri/target -path "*/bundle/*.AppImage" -type f | head -1 || true)
+          if [ -n "$APPIMAGE" ]; then
+            cp "$APPIMAGE" "release-assets/Excel列提取合并器-${VERSION}-Linux-x86_64.AppImage"
+            echo "✅ AppImage copied"
+          fi
+          # deb
+          DEB=$(find src-tauri/target -path "*/bundle/*.deb" -type f | head -1 || true)
+          if [ -n "$DEB" ]; then
+            cp "$DEB" "release-assets/Excel列提取合并器-${VERSION}-Linux-x86_64.deb"
+            echo "✅ .deb copied"
+          fi
+          # rpm
+          RPM=$(find src-tauri/target -path "*/bundle/*.rpm" -type f | head -1 || true)
+          if [ -n "$RPM" ]; then
+            cp "$RPM" "release-assets/Excel列提取合并器-${VERSION}-Linux-x86_64.rpm"
+            echo "✅ .rpm copied"
+          fi
+
+      - name: Upload artifacts to workflow
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-assets-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: release-assets-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la release-assets
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Excel列提取合并器 ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          body: |
+            ## Excel 列提取合并器 ${{ github.ref_name }}
+
+            ### 下载
+
+            | 平台 | 安装包 |
+            |------|--------|
+            | 🪟 Windows | `*-Windows-Setup.exe`（NSIS 安装包）或 `*-Windows-Portable.zip`（绿色便携版） |
+            | 🍎 macOS | `*-macOS.dmg` |
+            | 🐧 Linux | `*-Linux-x86_64.AppImage` / `.deb` / `.rpm` |
+
+            > 绿色便携版下载解压后即可运行，无需安装。
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

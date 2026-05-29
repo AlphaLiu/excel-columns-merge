@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules/.cache
+          key: ci-${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ci-${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Frontend build
+        run: bun run build
+
+  # 可选：持久化前端构建产物供后续 job 使用
+  # artifacts:
+  #   needs: [checks]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: oven-sh/setup-bun@v2
+  #     - run: bun install --frozen-lockfile
+  #     - run: bun run build
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: frontend-dist
+  #         path: dist/

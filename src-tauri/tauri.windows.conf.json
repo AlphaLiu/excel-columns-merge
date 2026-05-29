@@ -1,0 +1,17 @@
+{
+  "identifier": "com.tauri.excel-columns-merge",
+  "app": {
+    "windows": [
+      {
+        "title": "Excel列提取合并器",
+        "width": 1080,
+        "height": 680,
+        "visible": false,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true
+      }
+    ]
+  }
+}

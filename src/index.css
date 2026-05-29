@@ -1,0 +1,314 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/inter';
+
+@custom-variant dark (&:is(.dark *));
+
+/* =============================================
+   Apple Design System — Design Tokens
+   ============================================= */
+
+/* ——— Light mode (default) ——— */
+:root {
+  /* Accent */
+  --_apple-primary: #0066cc;
+  --_apple-primary-focus: #0071e3;
+  --_apple-primary-on-dark: #2997ff;
+  --_apple-primary-active: #004c99;
+
+  /* Surface */
+  --_apple-canvas: #ffffff;
+  --_apple-canvas-parchment: #f5f5f7;
+  --_apple-surface-pearl: #fafafc;
+  --_apple-surface-tile-1: #272729;
+  --_apple-surface-black: #000000;
+  --_apple-surface-chip: #d2d2d7;
+
+  /* Text */
+  --_apple-ink: #1d1d1f;
+  --_apple-body: #1d1d1f;
+  --_apple-body-muted: #cccccc;
+  --_apple-ink-muted-80: #333333;
+  --_apple-ink-muted-48: #7a7a7a;
+
+  /* Borders & dividers */
+  --_apple-hairline: #e0e0e0;
+  --_apple-divider-soft: #f0f0f0;
+
+  /* On-surface text */
+  --_apple-on-primary: #ffffff;
+  --_apple-on-dark: #ffffff;
+}
+
+/* ——— Dark mode ——— */
+.dark {
+  --_apple-primary: #2997ff;
+  --_apple-primary-focus: #66b3ff;
+  --_apple-primary-on-dark: #66b3ff;
+  --_apple-primary-active: #0066cc;
+
+  --_apple-canvas: #1d1d1f;
+  --_apple-canvas-parchment: #272729;
+  --_apple-surface-pearl: #2a2a2c;
+  --_apple-surface-tile-1: #1a1a1c;
+  --_apple-surface-black: #000000;
+  --_apple-surface-chip: #3a3a3c;
+
+  --_apple-ink: #ffffff;
+  --_apple-body: #f5f5f7;
+  --_apple-body-muted: #888888;
+  --_apple-ink-muted-80: #cccccc;
+  --_apple-ink-muted-48: #888888;
+
+  --_apple-hairline: #38383a;
+  --_apple-divider-soft: #2a2a2c;
+
+  --_apple-on-primary: #ffffff;
+  --_apple-on-dark: #ffffff;
+}
+
+/* =============================================
+   Tailwind v4 Theme Registration
+   ============================================= */
+@theme inline {
+  /* — Colors — */
+  --color-apple-primary: var(--_apple-primary);
+  --color-apple-primary-focus: var(--_apple-primary-focus);
+  --color-apple-primary-active: var(--_apple-primary-active);
+  --color-apple-primary-on-dark: var(--_apple-primary-on-dark);
+
+  --color-apple-ink: var(--_apple-ink);
+  --color-apple-body: var(--_apple-body);
+  --color-apple-body-muted: var(--_apple-body-muted);
+  --color-apple-ink-muted-80: var(--_apple-ink-muted-80);
+  --color-apple-ink-muted-48: var(--_apple-ink-muted-48);
+
+  --color-apple-canvas: var(--_apple-canvas);
+  --color-apple-canvas-parchment: var(--_apple-canvas-parchment);
+  --color-apple-surface-pearl: var(--_apple-surface-pearl);
+  --color-apple-surface-tile-1: var(--_apple-surface-tile-1);
+  --color-apple-surface-black: var(--_apple-surface-black);
+  --color-apple-surface-chip: var(--_apple-surface-chip);
+
+  --color-apple-hairline: var(--_apple-hairline);
+  --color-apple-divider-soft: var(--_apple-divider-soft);
+
+  --color-apple-on-primary: var(--_apple-on-primary);
+  --color-apple-on-dark: var(--_apple-on-dark);
+
+  /* — Typography families — */
+  --font-display: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, 'Inter Variable', sans-serif;
+  --font-body: 'SF Pro Text', system-ui, -apple-system, BlinkMacSystemFont, 'Inter Variable', sans-serif;
+
+  /* — Border radius (Apple scale) — */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
+}
+
+/* =============================================
+   Typography Utilities
+   ============================================= */
+@utility text-hero-display {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.28px;
+}
+
+@utility text-display-lg {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+@utility text-display-md {
+  font-family: var(--font-body);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+@utility text-tagline {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+}
+
+@utility text-body {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+@utility text-body-strong {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.374px;
+}
+
+@utility text-caption {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+}
+
+@utility text-caption-strong {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+@utility text-fine-print {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.12px;
+}
+
+@utility text-button-label {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.374px;
+}
+
+@utility text-dense-link {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 2.41;
+  letter-spacing: 0;
+}
+
+/* =============================================
+   Component Patterns
+   ============================================= */
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 11px 22px;
+  background-color: var(--_apple-primary);
+  color: var(--_apple-on-primary);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.374px;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  &:active {
+    transform: scale(0.95);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+@utility btn-primary-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 8px 15px;
+  background-color: var(--_apple-primary);
+  color: var(--_apple-on-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  &:active {
+    transform: scale(0.95);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+@utility btn-secondary-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 11px 22px;
+  background-color: transparent;
+  color: var(--_apple-primary);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.374px;
+  border: 1px solid var(--_apple-primary);
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  &:active {
+    transform: scale(0.95);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* =============================================
+   Base Styles
+   ============================================= */
+@layer base {
+  * {
+    border-color: var(--_apple-hairline);
+  }
+
+  body {
+    background-color: var(--_apple-canvas-parchment);
+    color: var(--_apple-body);
+    font-family:
+      'SF Pro Text',
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Inter Variable',
+      sans-serif;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Only the shadow for product imagery — per Apple spec, never on UI */
+  .product-shadow {
+    box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+  }
+}
